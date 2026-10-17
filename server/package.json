@@ -1,0 +1,14 @@
+{
+  "name": "flowscope-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --experimental-strip-types --watch src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "optionalDependencies": { "mongodb": "^6.10.0" },
+  "devDependencies": { "@types/node": "^22.10.0", "typescript": "^5.8.0" },
+  "engines": { "node": ">=22.6" }
+}

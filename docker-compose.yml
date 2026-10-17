@@ -1,0 +1,17 @@
+services:
+  flowscope:
+    build: .
+    restart: unless-stopped
+    ports: ["8080:8080"]
+    env_file: .env
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+    volumes: ["flowscope-data:/data"]
+    depends_on: [mongo]
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: ["mongo-data:/data/db"]
+volumes:
+  flowscope-data:
+  mongo-data:

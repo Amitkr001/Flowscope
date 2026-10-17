@@ -1,0 +1,15 @@
+{
+  "name": "flowscope",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FlowScope — real-time order-flow charting (footprint, heatmap, big trades, DOM) with custom indicators and tick backtesting.",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev:server": "npm --workspace server run dev",
+    "dev:web": "npm --workspace web run dev",
+    "build": "npm --workspace web run build",
+    "start": "npm --workspace server run start",
+    "typecheck": "npm --workspace server run typecheck && npm --workspace web run typecheck"
+  },
+  "engines": { "node": ">=22.6" }
+}
