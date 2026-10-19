@@ -770,7 +770,7 @@ export class ChartEngine {
       e.preventDefault(); const G = this.G; if (!G.bars?.length) return;
       const { x, y } = this.pos(e), unit = e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1;
       const dx = e.deltaX * unit, dy = e.deltaY * unit;
-      if (x > G.plotW && y < G.mainH || e.altKey) {                      // price zoom
+      if ((x > G.plotW && y < G.mainH) || e.altKey) {                    // price zoom
         const f = clamp(Math.exp(dy * 0.0015), 0.7, 1.4), c = this.curY();
         this.view.auto = false; this.view.y = { mid: c.mid, span: c.span * f };
       } else if (e.shiftKey || Math.abs(dx) > Math.abs(dy)) {             // horizontal scroll
