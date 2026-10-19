@@ -6,7 +6,9 @@ import { StatusBar } from '../components/StatusBar';
 import { TradingPanel } from '../components/TradingPanel';
 import { DomDock, TapeDock, WatchDock } from '../components/Docks';
 import { SymbolSearch } from '../components/SymbolSearch';
+import { ChartControls } from '../components/ChartControls';
 import { ChartEngine } from '../chart/engine';
+import type { ViewState } from '../chart/engine';
 import { data, net, type MarketData } from '../data/client';
 import { BAR_SPECS, parseSpec, specKey, specLabel } from '../data/bars';
 import { settings, saveDrawings, drawingsStore, bigFor } from '../lib/settings';
@@ -35,13 +37,15 @@ export function ChartPage() {
   const [replay, setReplay] = useState<{ idx: number; on: boolean; speed: number } | null>(null);
   const [lockAll, setLockAll] = useState(false), [hideAll, setHideAll] = useState(false);
   const [statusTick, setStatusTick] = useState(0);
+  const [vs, setVs] = useState<ViewState>({ live: true, auto: true });
   const spec = parseSpec(st.spec);
   const bigUsd = sym ? bigFor(sym.id, sym.bigUsd) : 1e9;
 
   /* engine lifecycle */
   useEffect(() => {
-    const e = new ChartEngine(cvRef.current!, { style: st.style, ov: st.ov, spec, rowMult: st.rowMult, bigUsd, acct: st.acct, magnet: st.magnet });
+    const e = new ChartEngine(cvRef.current!, { style: st.style, ov: st.ov, spec, rowMult: st.rowMult, bigUsd, acct: st.acct, magnet: st.magnet, fpMode: st.fpMode });
     e.cb = {
+      view: s => setVs(s),
       select: d => setSelD(d ? { ...d } : null),
       tool: t => setTool(t),
       context: (ev, p) => setMenu({ x: ev.clientX, y: ev.clientY, p }),
@@ -77,7 +81,8 @@ export function ChartPage() {
   }, [sym?.id]);
 
   /* options → engine */
-  useEffect(() => { eng.current?.setOptions({ style: st.style, ov: st.ov, spec, rowMult: st.rowMult, bigUsd, acct: st.acct, magnet: st.magnet }); }, [st.style, st.ov, st.spec, st.rowMult, bigUsd, st.acct, st.magnet]);
+  useEffect(() => { eng.current?.setOptions({ style: st.style, ov: st.ov, spec, rowMult: st.rowMult, bigUsd, acct: st.acct, magnet: st.magnet, fpMode: st.fpMode }); },
+    [st.style, st.ov, st.spec, st.rowMult, bigUsd, st.acct, st.magnet, st.fpMode]);
   useEffect(() => { if (eng.current) { eng.current.hidden = hideAll; eng.current.invalidate(); } }, [hideAll]);
   useEffect(() => { const e = eng.current; if (!e) return; e.drawings.forEach(d => { d.locked = lockAll; }); e.invalidate(); }, [lockAll]);
 
@@ -114,7 +119,7 @@ export function ChartPage() {
   useEffect(() => { const c = () => setMenu(null); window.addEventListener('mousedown', c); return () => window.removeEventListener('mousedown', c); }, []);
 
   const setSym = (id: string) => settings.set(s => ({ sym: id, tabs: s.tabs.includes(id) ? s.tabs : [...s.tabs, id].slice(-10) }));
-  const toggleOv = (k: keyof Overlays) => settings.set(s => ({ ov: { ...s.ov, [k]: !s.ov[k] } }));
+  const toggleOv = (k: keyof Overlays) => settings.set(s => ({ ov: { ...s.ov, !s.ov[k] } }));
   const statusPill = useMemo(() => {
     if (!connected) return { cls: 'off', txt: 'Offline' };
     const s = md ? Object.values(md.status) : []; const ok = s.filter(x => x.ok).length;
@@ -157,8 +162,10 @@ export function ChartPage() {
               </div>
               {selD && <DrawingBar d={selD} onPatch={p => eng.current?.updateSelected(p)} onClone={() => eng.current?.cloneSelected()} onDelete={() => eng.current?.deleteSelected()} />}
               {!connected && <div className="conn-banner">Disconnected from the FlowScope server — reconnecting…</div>}
-              <button className="replay-btn" title="Bar replay" aria-label="Bar replay" onClick={() => { const n = eng.current?.B?.bars.length || 0; setReplay(r => r ? null : { idx: Math.max(20, n - 150), on: true, speed: 300 }); }}><Icon n="play" /></button>
-              <button className="replay-btn" style={{ right: 116 }} title="Auto-scale price (double-click price axis)" aria-label="Auto scale" onClick={() => eng.current?.resetY()}><Icon n="autoscale" size={13} /></button>
+              <ChartControls eng={eng.current} vs={vs} style={st.style}
+                fpMode={st.fpMode} onFpMode={m => settings.set({ fpMode: m })}
+                replaying={!!replay}
+                onReplay={() => { const n = eng.current?.B?.bars.length || 0; setReplay(r => r ? null : { idx: Math.max(20, n - 150), on: true, speed: 300 }); }} />
               {replay && (
                 <div className="replay-bar">
                   <span style={{ color: 'var(--accent-hi)', fontWeight: 600, marginRight: 4 }}>REPLAY</span>
@@ -180,8 +187,7 @@ export function ChartPage() {
 
         <StatusBar style={st.style} onStyle={s => settings.set({ style: s, ...(s === 'heatmap' && (spec.kind !== 'time' || spec.sec >= 60) ? { spec: 't:15' } : {}), ...(s !== 'heatmap' && st.style === 'heatmap' && spec.kind === 'time' && spec.sec < 60 ? { spec: 't:60' } : {}) })}
           ov={st.ov} onOv={toggleOv} scripts={list} onScript={id => saveScripts(list.map(s => s.id === id ? { ...s, on: !s.on } : s))}
-          docks={st.docks} onDock={k => settings.set(s => ({ docks: { ...s.docks, [k]: !s.docks[k] } }))} />
-
+          docks={st.docks} onDock={k => settings.set(s => ({ docks: { ...s.docks, [k]: !s.docks[k] } }))
         <div className="wtabs">
           {st.tabs.map(id => (
             <div key={id} className={`wtab ${id === sym?.id ? 'on' : ''}`} onClick={() => setSym(id)}>
@@ -201,9 +207,10 @@ export function ChartPage() {
             <div onClick={() => { broker.place('lmt', 1, 1, +menu.p.toFixed(sym.dec)); setMenu(null); }}>Buy limit 1 @ {menu.p.toFixed(sym.dec)}</div>
             <div onClick={() => { broker.place('lmt', -1, 1, +menu.p.toFixed(sym.dec)); setMenu(null); }}>Sell limit 1 @ {menu.p.toFixed(sym.dec)}</div><hr />
           </>}
-          <div onClick={() => { const e = eng.current!; e.setTool('hline'); setMenu(null); toast('Click the chart to place the level'); }}>Add horizontal line</div>
-          <div onClick={() => { eng.current?.goLive(); setMenu(null); }}>Reset view (go live)</div>
-          <div onClick={() => { eng.current?.resetY(); setMenu(null); }}>Auto-scale price</div>
+          <div onClick={() => { eng.current?.setTool('hline'); setMenu(null); toast('Click the chart to place the level'); }}>Add horizontal line</div>
+          <div onClick={() => { eng.current?.goLive(); setMenu(null); }}>Scroll to real-time</div>
+          <div onClick={() => { eng.current?.reset(); setMenu(null); }}>Reset chart</div>
+          <div onClick={() => { eng.current?.setAutoScale(true); setMenu(null); }}>Auto-scale price</div>
           <div onClick={() => { settings.set(s => ({ watch: s.watch.includes(sym!.id) ? s.watch : [...s.watch, sym!.id] })); setMenu(null); toast(`${sym?.id} added to watchlist`); }}>Add {sym?.id} to watchlist</div>
         </div>
       )}
