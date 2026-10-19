@@ -19,6 +19,7 @@ import { toast } from '../lib/api';
 import type { Drawing, Overlays } from '../lib/types';
 
 const ROW_MULTS = [1, 2, 4, 5, 10, 20, 50];
+type DockKey = 'dom' | 'tp' | 'ts' | 'wl';
 
 export function ChartPage() {
   const st = settings.use(s => s);
@@ -58,6 +59,7 @@ export function ChartPage() {
       },
     };
     eng.current = e;
+    setStatusTick(x => x + 1); // re-render so the control bar sees the engine
     return () => { e.destroy(); eng.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -80,7 +82,7 @@ export function ChartPage() {
     return () => { off(); data.release(sym.id); };
   }, [sym?.id]);
 
-  /* options → engine */
+  /* options -> engine */
   useEffect(() => { eng.current?.setOptions({ style: st.style, ov: st.ov, spec, rowMult: st.rowMult, bigUsd, acct: st.acct, magnet: st.magnet, fpMode: st.fpMode }); },
     [st.style, st.ov, st.spec, st.rowMult, bigUsd, st.acct, st.magnet, st.fpMode]);
   useEffect(() => { if (eng.current) { eng.current.hidden = hideAll; eng.current.invalidate(); } }, [hideAll]);
@@ -119,7 +121,8 @@ export function ChartPage() {
   useEffect(() => { const c = () => setMenu(null); window.addEventListener('mousedown', c); return () => window.removeEventListener('mousedown', c); }, []);
 
   const setSym = (id: string) => settings.set(s => ({ sym: id, tabs: s.tabs.includes(id) ? s.tabs : [...s.tabs, id].slice(-10) }));
-  const toggleOv = (k: keyof Overlays) => settings.set(s => ({ ov: { ...s.ov, !s.ov[k] } }));
+  const toggleOv = (k: keyof Overlays) => settings.set(s => { const ov = { ...s.ov }; ov[k] = !ov[k]; return { ov }; });
+  const toggleDock = (k: DockKey) => settings.set(s => { const docks = { ...s.docks }; docks[k] = !docks[k]; return { docks }; });
   const statusPill = useMemo(() => {
     if (!connected) return { cls: 'off', txt: 'Offline' };
     const s = md ? Object.values(md.status) : []; const ok = s.filter(x => x.ok).length;
@@ -161,7 +164,7 @@ export function ChartPage() {
                 <div className="g"><div className="bar"><i ref={gCvd as any} style={{ background: '#18e0f0', left: '50%' }} /></div><span ref={gCvdT}>Cvd: 0</span></div>
               </div>
               {selD && <DrawingBar d={selD} onPatch={p => eng.current?.updateSelected(p)} onClone={() => eng.current?.cloneSelected()} onDelete={() => eng.current?.deleteSelected()} />}
-              {!connected && <div className="conn-banner">Disconnected from the FlowScope server — reconnecting…</div>}
+              {!connected && <div className="conn-banner">Disconnected from the FlowScope server - reconnecting…</div>}
               <ChartControls eng={eng.current} vs={vs} style={st.style}
                 fpMode={st.fpMode} onFpMode={m => settings.set({ fpMode: m })}
                 replaying={!!replay}
@@ -187,7 +190,8 @@ export function ChartPage() {
 
         <StatusBar style={st.style} onStyle={s => settings.set({ style: s, ...(s === 'heatmap' && (spec.kind !== 'time' || spec.sec >= 60) ? { spec: 't:15' } : {}), ...(s !== 'heatmap' && st.style === 'heatmap' && spec.kind === 'time' && spec.sec < 60 ? { spec: 't:60' } : {}) })}
           ov={st.ov} onOv={toggleOv} scripts={list} onScript={id => saveScripts(list.map(s => s.id === id ? { ...s, on: !s.on } : s))}
-          docks={st.docks} onDock={k => settings.set(s => ({ docks: { ...s.docks, [k]: !s.docks[k] } }))
+          docks={st.docks} onDock={toggleDock} />
+
         <div className="wtabs">
           {st.tabs.map(id => (
             <div key={id} className={`wtab ${id === sym?.id ? 'on' : ''}`} onClick={() => setSym(id)}>
