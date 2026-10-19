@@ -8,7 +8,7 @@ export interface Settings {
   rowMult: number; bigUsd: Record<string, number>;
   acct: { size: number; risk: number }; magnet: boolean;
   tabs: string[]; watch: string[];
-  /** footprint cell display: bid × ask, delta per price, or volume per price */
+  /** footprint cell display: bid x ask, delta per price, or volume per price */
   fpMode: FpMode;
 }
 const DEFAULTS: Settings = {
@@ -42,7 +42,7 @@ settings.subscribe(() => saveDoc('settings', settings.get()));
 /* ---- drawings per symbol ---- */
 export const drawingsStore = createStore<{ bySym: Record<string, Drawing[]> }>({ bySym: localDoc('drawings', {}) });
 export function saveDrawings(sym: string, list: Drawing[]) {
-  drawingsStore.set(s => ({ bySym: { ...s.bySym, list } }));
+  drawingsStore.set(s => ({ bySym: { ...s.bySym, [sym]: list } }));
   saveDoc('drawings', drawingsStore.get().bySym);
 }
 
