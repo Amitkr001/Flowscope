@@ -14,7 +14,7 @@ const R = ({ on, label, onClick, title }: { on: boolean; label: string; onClick(
 export function StatusBar(p: Props) {
   return (
     <footer className="statusbar">
-      <a className="lbl" href="#/indicators">Indicators <Icon n="bars" size={16} /></a>
+      <a className="lbl" href="#/indicators">Indicators></a>
       <R on={p.style === 'candles'} label="CANDLES" onClick={() => p.onStyle('candles')} />
       <R on={p.style === 'footprint'} label="FOOTPRINT" onClick={() => p.onStyle('footprint')} />
       <R on={p.style === 'heatmap'} label="HEATMAP" onClick={() => p.onStyle('heatmap')} />
@@ -25,6 +25,8 @@ export function StatusBar(p: Props) {
       <R on={p.ov.cvd} label="CVD" onClick={() => p.onOv('cvd')} />
       <R on={p.ov.delta} label="DELTA" onClick={() => p.onOv('delta')} />
       <R on={p.ov.imbl} label="Imp. L" onClick={() => p.onOv('imbl')} title="Stacked imbalance levels" />
+      <R on={p.ov.stats} label="STATS" onClick={() => p.onOv('stats')} title="Bar statistics: volume, delta, delta %, big-trade delta" />
+      <R on={p.ov.walls} label="WALLS" onClick={() => p.onOv('walls')} title="Largest resting orders in the live order book" />
       <span className="vsep" />
       <R on={p.ov.visp} label="VIS.P" onClick={() => p.onOv('visp')} title="Visible range profile" />
       <R on={p.ov.dlyp} label="DLY.P" onClick={() => p.onOv('dlyp')} title="Daily profile" />
