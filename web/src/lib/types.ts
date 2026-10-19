@@ -28,16 +28,8 @@ export type BarSpec = { kind: 'time'; sec: number } | { kind: 'vol'; size: numbe
 
 export type ChartStyle = 'candles' | 'footprint' | 'heatmap';
 
+/** Footprint cell display: bid × ask numbers, delta per price, or total volume per price. */
+export type FpMode = 'ba' | 'delta' | 'vol';
+
 export interface Overlays {
-  bubbles: boolean; volume: boolean; vwap: boolean; cvd: boolean; delta: boolean;
-  imbl: boolean; visp: boolean; dlyp: boolean;
-}
-
-export interface Plot { name: string; values: (number | null)[]; color: string; pane?: 'main' | 'sub'; type?: 'line' | 'hist' | 'dots' }
-
-export interface Pt { t: number; p: number }
-export interface Drawing {
-  id: string; type: string; pts: Pt[];
-  color: string; width: number; dash: 0 | 1 | 2;
-  text?: string; locked?: boolean; hidden?: boolean; fill?: boolean;
-}
+  bubbles: bo
